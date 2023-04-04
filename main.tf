@@ -10,7 +10,7 @@ terraform {
       version = ">= 3.4.3"
     }
 #    restapi = {
-#      source  = "hashicorp/ fmontezuma/restapi"
+#      source  = "hashicorp/restapi"
 #      version = ">= 1.14.1"
 #    }
   }
