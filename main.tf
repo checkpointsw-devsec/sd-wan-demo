@@ -10,7 +10,7 @@ terraform {
       version = ">= 3.4.3"
     }
 #    restapi = {
-#      source  = "hashicorp/restapi"
+#      source  = "hashicorp/ fmontezuma/restapi"
 #      version = ">= 1.14.1"
 #    }
   }
@@ -87,7 +87,7 @@ resource "azurerm_public_ip" "PubIP2" {
 }
 
 # ###########################################
-# Create Subnet1
+# Create Subnet1 assign routing tabel and security group
 # ###########################################
 resource "azurerm_subnet" "External_subnet1"  {
   depends_on = [ azurerm_virtual_network.vnet  ]
@@ -128,7 +128,7 @@ resource "azurerm_subnet_route_table_association" "External_subnet1" {
 }
 
 # ###########################################
-#  Create Subnet2
+#  Create Subnet2 assign routing tabel and security group
 # ###########################################
 resource "azurerm_subnet" "External_subnet2"   {
   depends_on = [ azurerm_virtual_network.vnet  ]
@@ -168,7 +168,7 @@ resource "azurerm_subnet_route_table_association" "External_subnet2" {
   route_table_id = azurerm_route_table.External_subnet2.id
 }
 # ###########################################
-#  Create Subnet3
+#  Create Subnet3 assign routing tabel and security group
 # ###########################################
 resource "azurerm_subnet" "Internal_subnet"  {
   depends_on = [ azurerm_virtual_network.vnet  ]
@@ -204,6 +204,9 @@ resource "azurerm_subnet_route_table_association" "Internal_subnet" {
   route_table_id = azurerm_route_table.Internal_subnet.id
 }
 //********************** create all interfaces and assign reserved IP  **********//
+# ###########################################
+#  Create Front-eth0 interface
+# ###########################################
 resource "azurerm_network_interface" "mgmtInterface" {
   depends_on = [ azurerm_public_ip.PubIP1  ]
   name                            = "NIC-Front1-eth0"
@@ -226,6 +229,9 @@ resource "azurerm_network_interface" "mgmtInterface" {
   }
 }
 
+# ###########################################
+#  Create Front-eth1 interface
+# ###########################################
 resource "azurerm_network_interface" "gwexternal1" {
   depends_on = [ azurerm_subnet.External_subnet1  ]
   name                            = "NIC-Front2-eth1"
@@ -242,6 +248,9 @@ resource "azurerm_network_interface" "gwexternal1" {
   }
 }
 
+# ###########################################
+#  Create Back-eth2 interface
+# ###########################################
 resource "azurerm_network_interface" "gwinternal" {
   depends_on = [ azurerm_subnet.Internal_subnet  ]
   name                            = "NIC-Back1-eth2"
@@ -310,7 +319,8 @@ resource "azurerm_virtual_machine" "chkpgw" {
   name                  = var.gateway_name
   location              = azurerm_resource_group.rg.location
   resource_group_name   = azurerm_resource_group.rg.name
-  network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwexternal1.id, azurerm_network_interface.gwinternal.id]
+  #network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwexternal1.id, azurerm_network_interface.gwinternal.id]
+  network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwinternal.id]
   primary_network_interface_id = "${azurerm_network_interface.gwexternal1.id}"
   vm_size               = var.vm_size
   delete_os_disk_on_termination = "true"
