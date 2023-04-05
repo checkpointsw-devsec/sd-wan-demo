@@ -321,7 +321,7 @@ resource "azurerm_virtual_machine" "chkpgw" {
   resource_group_name   = azurerm_resource_group.rg.name
   #network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwexternal1.id, azurerm_network_interface.gwinternal.id]
   network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwinternal.id]
-  primary_network_interface_id = "${azurerm_network_interface.gwexternal1.id}"
+  primary_network_interface_id = azurerm_network_interface.mgmtInterface.id
   vm_size               = var.vm_size
   delete_os_disk_on_termination = "true"
 
