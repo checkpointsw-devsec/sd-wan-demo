@@ -9,12 +9,15 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.4.3"
     }
-#    restapi = {
-#      source  = "hashicorp/ fmontezuma/restapi"
-#      version = ">= 1.14.1"
-#    }
+    local = {
+      source  = "hashicorp/local"
+    }
+    http-full = {
+      source  = "salrashid123/http-full"
+    }
   }
 }
+
 
 //********************** use credentials as in terraform.tfvars ++***************//
 provider "azurerm" {
@@ -24,6 +27,39 @@ provider "azurerm" {
   tenant_id           = var.tenant_id
 
   features {}
+}
+
+//********************** smart- 1 cloud create or delete gateway ***************//
+resource "null_resource" "smart-1-cloud" {
+   triggers = {
+    gwname      = "${var.gateway_name}"
+    clientid    = "${var.s1cclientid}"
+    secretkey   = "${var.s1cpassword}"
+    gatewayName = "${var.gateway_name}"
+    MgmtApi     = "${var.mgmt_api_key}"
+    s1inst      = "${var.smartoneInstance}"
+    s1const     = "${var.smartoneContext}"
+   }
+   provisioner "local-exec" {
+	  interpreter =["Powershell", "-Command"] 
+    command = "${path.module}\\api_gw_register.ps1 -command register -clientid ${self.triggers.clientid} -secretkey ${self.triggers.secretkey} -gateway ${self.triggers.gwname}"
+    when    = create
+   }
+   provisioner "local-exec" {
+	  interpreter =["Powershell", "-Command"] 
+    command =<<EOCS
+      ${path.module}\\api_gw_register.ps1 -command delete   -clientid ${self.triggers.clientid} -secretkey ${self.triggers.secretkey} -gateway ${self.triggers.gwname}
+      ${path.module}\\api_mgmt_detele_gw.ps1 -command delete  -gateway_name ${self.triggers.gatewayName} -mgmt_api ${self.triggers.MgmtApi} -smartoneInstance ${self.triggers.s1inst} -smartoneContext ${self.triggers.s1const}
+    EOCS
+    when    = destroy
+   }
+}
+
+data "local_file" "registrationtoken" {
+  depends_on = [
+    null_resource.smart-1-cloud
+  ]
+  filename   = "${path.module}\\maas_token.txt"
 }
 
 //********************** Resource Group Configuration **************************//
@@ -51,7 +87,7 @@ resource "azurerm_virtual_network" "vnet" {
 # create a network security Group to allow all 
 # ###########################################
 resource "azurerm_network_security_group" "nsg" {
-  name                = "allow_all_nsg"
+  name                = "nsg_allow_all"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -110,12 +146,12 @@ resource "azurerm_route_table" "External_subnet1" {
 
   route {
     name           = "Local-Subnet1"
-    address_prefix = var.address_space
+    address_prefix = var.subnet_prefixes[0]
     next_hop_type  = "VnetLocal"
   }
   route {
     name           = "To-Internet"
-    address_prefix = "0.0.0.0/0"
+    address_prefix = var.address_space
     next_hop_type  = "VirtualAppliance"
 	  next_hop_in_ip_address = var.GW_interface_IP[0]
    }
@@ -151,12 +187,12 @@ resource "azurerm_route_table" "External_subnet2" {
 
   route {
     name           = "Local-Subnet2"
-    address_prefix = var.address_space
+    address_prefix = var.subnet_prefixes[1]
     next_hop_type  = "VnetLocal"
   }
   route {
     name           = "To-Internet"
-    address_prefix = "0.0.0.0/0"
+    address_prefix = var.address_space
     next_hop_type  = "VirtualAppliance"
 	  next_hop_in_ip_address = var.GW_interface_IP[1]
    }
@@ -186,7 +222,7 @@ resource "azurerm_subnet_network_security_group_association" "Internal_subnets" 
 
 resource "azurerm_route_table" "Internal_subnet" {
   depends_on = [ azurerm_subnet.Internal_subnet  ]
-  name                = "Rt_Back1"
+  name                = "RT_Back1"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -268,6 +304,26 @@ resource "azurerm_network_interface" "gwinternal" {
 
 //********************** Gateway ***********************************************//
 # ###########################################
+# Accept the agreement for selected offer and SKU
+# ###########################################
+data "azurerm_marketplace_agreement" "Checkpointget" {
+  offer               = var.vm_os_offer
+  publisher           = var.publisher
+  plan                = var.vm_os_sku  
+}
+
+locals {
+  agreement_exists = length(data.azurerm_marketplace_agreement.Checkpointget) > 0
+}
+
+resource "azurerm_marketplace_agreement" "Checkpoint" {
+  count = local.agreement_exists ? 0 : 1
+  offer               = var.vm_os_offer
+  publisher           = var.publisher
+  plan                = var.vm_os_sku 
+}
+
+# ###########################################
 # Generate random text for a unique storage account name
 # ###########################################
 resource "random_id" "randomId" {
@@ -293,23 +349,19 @@ locals {
   custom_image_condition = var.source_image_vhd_uri == "noCustomUri" ? false : true
 }
 
-
-# Create virtual machine and Accept the agreement for selected offer and SKU
-data "azurerm_marketplace_agreement" "Checkpointget" {
-  offer               = var.vm_os_offer
-  publisher           = var.publisher
-  plan                = var.vm_os_sku  
-}
-
-locals {
-  agreement_exists = length(data.azurerm_marketplace_agreement.Checkpointget) > 0
-}
-
-resource "azurerm_marketplace_agreement" "Checkpoint" {
-  count = local.agreement_exists ? 0 : 1
-  offer               = var.vm_os_offer
-  publisher           = var.publisher
-  plan                = var.vm_os_sku 
+data "template_file" "userdata_setup" {
+  template = file("${path.module}/customdata.sh")
+  vars = {
+    sic_key        = "${var.sic_key}"
+    gateway_name   = "${var.gateway_name}"
+    admin_password = "${var.admin_password}"
+    time_zone      = "${var.time_zone}"
+    admin_shell    = "${var.admin_shell}"
+	   eth0_addr     = "${var.GW_interface_IP[0]}"
+	   eth1_addr     = "${var.GW_interface_IP[1]}"
+    maas_token     = "${data.local_file.registrationtoken.content}"
+    version        = "${var.os_version}"
+  }
 }
 
 resource "azurerm_virtual_machine" "chkpgw" {
@@ -319,8 +371,8 @@ resource "azurerm_virtual_machine" "chkpgw" {
   name                  = var.gateway_name
   location              = azurerm_resource_group.rg.location
   resource_group_name   = azurerm_resource_group.rg.name
-  #network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwexternal1.id, azurerm_network_interface.gwinternal.id]
-  network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwinternal.id]
+  network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwexternal1.id, azurerm_network_interface.gwinternal.id]
+  #network_interface_ids = [azurerm_network_interface.mgmtInterface.id, azurerm_network_interface.gwinternal.id]
   primary_network_interface_id = azurerm_network_interface.mgmtInterface.id
   vm_size               = var.vm_size
   delete_os_disk_on_termination = "true"
@@ -348,7 +400,7 @@ resource "azurerm_virtual_machine" "chkpgw" {
     computer_name  = var.gateway_name 
     admin_username = "sdwanguru"
     admin_password = var.admin_password
-    custom_data = file("customdata.sh") 
+    custom_data    = data.template_file.userdata_setup.rendered 
   }
 
   os_profile_linux_config {
@@ -359,7 +411,6 @@ resource "azurerm_virtual_machine" "chkpgw" {
     enabled = "true"
     storage_uri = azurerm_storage_account.mystorageaccount.primary_blob_endpoint
   }
-
 }
 
 //********************** Windows Client ***********************************************//
@@ -369,7 +420,6 @@ data "azurerm_marketplace_agreement" "msget" {
   publisher           = var.ospublisher
   plan                = var.ms_sku  
 }
-
 locals {
   msagreement_exists = length(data.azurerm_marketplace_agreement.msget) > 0
 }
@@ -426,7 +476,29 @@ resource "azurerm_windows_virtual_machine" "Win10Client" {
   }
 }
 
-# //********************** Rest API ***********************************************//
-# #resource "restapi_object" "name" {
-# #  
-# #}
+//********************** Create Sic ***********************************************//
+resource "null_resource" "default" {
+  depends_on = [ 
+    azurerm_windows_virtual_machine.Win10Client
+  ]
+  connection {
+    type     = "ssh"
+    host     = "${azurerm_public_ip.PubIP1.ip_address}"
+    user     = "admin"
+    password = var.admin_password
+  }
+  provisioner  "remote-exec" {
+    inline = [
+      "while [ ! -f /home/admin/sic_flag_file.log ]; do sleep 10; done;",
+    ]
+  }
+}
+
+resource "null_resource" "smart-1-cloud-establish-sic" {
+  provisioner "local-exec" {
+    interpreter =["Powershell", "-Command"] 
+    command = "${path.module}\\api_create-sic.ps1 -gateway_name ${var.gateway_name} -mgmt_api ${var.mgmt_api_key} -smartoneInstance ${var.smartoneInstance}  -smartoneContext ${var.smartoneContext} -sickey '${var.sic_key}' -version ${var.os_version}"
+    when    = create
+  }
+  depends_on = [ null_resource.default ]
+}
