@@ -1,5 +1,6 @@
 
 //********************** Credentials **************************//
+//****** Azure Credentials *************//
 variable "tenant_id" {
   description = "Tenant ID"
   type = string
@@ -20,6 +21,43 @@ variable "client_secret" {
   type = string
 }
 
+//****** Smart-1 Cloud Credentials *************//
+variable "s1cclientid" {
+  description = "your smart-1 cloud Domain"
+  type = string
+  default = ""
+}
+
+variable "s1cpassword" {
+  description = "auth password for Smart-1 Cloud"
+  type = string
+  default = ""
+}
+
+variable "maas_token" {
+  description = "registration token from S1C"
+  type = string
+  default = ""
+}
+
+variable "mgmt_api_key" {
+  description = "this api key is the one you need to shoot api into your smart-1 console ;-)"
+  type = string
+  default = ""
+}
+
+variable "smartoneInstance" {
+  description = "first part of your tenant link"
+  type = string
+  default = ""
+}
+
+variable "smartoneContext" {
+  description = "second part of your tenant link"
+  type = string
+  default = ""
+}
+
 //********************** Basic Configuration Variables **************************//
 variable "resource_group_name" {
   description = "Azure Resource Group name to build into"
@@ -37,21 +75,22 @@ variable "vnet_name" {
   type = string
 }
 
+variable "address_space" {
+  description = "The address space that is used by a Virtual Network."
+  type = string
+  default = "10.0.0.0/16"
+}
+
 variable "subnet_prefixes" {
   description = "Address prefix to be used for netwok subnets"
   type = list(string)
-  default = [
-    "10.0.0.0/24",
-    "10.0.1.0/24"]
+  default = [    "10.0.0.0/24",    "10.0.1.0/24"]
 }
 
 variable "GW_interface_IP" {
   description = "Interface IP Adresses"
   type = list(string)
-  default = [
-    "10.50.10.10/24",
-    "10.50.20.10/24",
-    "10.50.100.10/24"]
+  default = [    "10.50.10.10/24",    "10.50.20.10/24",    "10.50.100.10/24"]
 }
 
 variable "Win10_IP" {
@@ -60,11 +99,6 @@ variable "Win10_IP" {
   default = "10.50.100.20"
 }
 
-variable "address_space" {
-  description = "The address space that is used by a Virtual Network."
-  type = string
-  default = "10.0.0.0/16"
-}
 //********************** Gateway Variables **************************//
 variable "source_image_vhd_uri" {
   type = string
@@ -110,9 +144,10 @@ variable "vm_size" {
   type = string
 }
 
-variable "win_vm_size" {
-  description = "Specifies size of Virtual Machine"
+variable "sku" {
+  description = "SKU"
   type = string
+  default = "Standard"
 }
 
 variable "vm_os_sku" {
@@ -125,70 +160,15 @@ variable "vm_os_offer" {
   type = string
 }
 
-variable "ms_os_offer" {
-  description = "The name of the image offer to be deployed.Choose from: check-point-cg-r8040, check-point-cg-r81, check-point-cg-r8110, check-point-cg-r8120"
-  type = string
-}
-
 variable "os_version" {
   description = "GAIA OS version"
   type = string
 }
 
+
 variable "gateway_name" {
   description = "gateway name"
   type = string
-}
-
-variable "Win10_name" {
-  description = "Windows Client Name"
-  type = string
-}
-
-variable "admin_password" {
-  description = "Administrator password of deployed Virtual Macine. The password must meet the complexity requirements of Azure"
-  type = string
-}
-
-variable "ms_admin_password" {
-  description = "Administrator password of deployed Virtual Macine. The password must meet the complexity requirements of Azure"
-  type = string
-}
-
-resource "null_resource" "sic_key_invalid" {
-  count = length(var.sic_key) >= 12 ? 0 : "SIC key must be at least 12 characters long"
-}
-
-variable "disk_size" {
-  description = "Storage data disk size size(GB).Select a number between 100 and 3995"
-  type = string
-}
-
-variable "sic_key" {
-  description = "Secure Internal Communication(SIC) key"
-  type = string
-}
-
-variable "admin_username" {
-  description = "Administrator username of deployed VM. Due to Azure limitations 'notused' name can be used"
-  default = "notused"
-}
-
-variable "ms_admin_username" {
-  description = "Administrator username of deployed VM. Due to Azure limitations 'notused' name can be used"
-  default = "notused"
-}
-
-variable "sku" {
-  description = "SKU"
-  type = string
-  default = "Standard"
-}
-
-variable "ms_sku" {
-  description = "SKU"
-  type = string
-  default = "Standard"
 }
 
 variable "authentication_type" {
@@ -204,12 +184,36 @@ locals { // locals for 'authentication_type' allowed values
   validate_authentication_type_value = index(local.authentication_type_allowed_values, var.authentication_type)
 }
 
+variable "admin_username" {
+  description = "Administrator username of deployed VM. Due to Azure limitations 'notused' name can be used"
+  default = "notused"
+}
+
+variable "admin_password" {
+  description = "Administrator password of deployed Virtual Macine. The password must meet the complexity requirements of Azure"
+  type = string
+}
+
+variable "sic_key" {
+  description = "Secure Internal Communication(SIC) key"
+  type = string
+}
+
+resource "null_resource" "sic_key_invalid" {
+  count = length(var.sic_key) >= 12 ? 0 : "SIC key must be at least 12 characters long"
+}
+
 variable "availability_type" {
   description = "Specifies whether to deploy the solution based on Azure Availability Set or based on Azure Availability Zone."
   type = string
   default = "Availability Zone"
 }
 
+variable "time_zone" {
+  description = "gw-timezone"
+  type = string
+  default = "Europe/Berlin"
+}
 locals { // locals for 'availability_type' allowed values
   availability_type_allowed_values = [
     "Availability Zone",
@@ -264,4 +268,42 @@ variable "enable_custom_metrics" {
   type = bool
   default = true
 }
+
+//********************** Windows Client Variables **************************//
+variable "win_vm_size" {
+  description = "Specifies size of Virtual Machine"
+  type = string
+}
+
+variable "ms_os_offer" {
+  description = "The name of the image offer to be deployed.Choose from: check-point-cg-r8040, check-point-cg-r81, check-point-cg-r8110, check-point-cg-r8120"
+  type = string
+}
+
+variable "Win10_name" {
+  description = "Windows Client Name"
+  type = string
+}
+
+variable "ms_admin_password" {
+  description = "Administrator password of deployed Virtual Macine. The password must meet the complexity requirements of Azure"
+  type = string
+}
+
+variable "disk_size" {
+  description = "Storage data disk size size(GB).Select a number between 100 and 3995"
+  type = string
+}
+
+variable "ms_admin_username" {
+  description = "Administrator username of deployed VM. Due to Azure limitations 'notused' name can be used"
+  default = "notused"
+}
+
+variable "ms_sku" {
+  description = "SKU"
+  type = string
+  default = "Standard"
+}
+
 
