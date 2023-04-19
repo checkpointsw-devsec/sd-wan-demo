@@ -1,0 +1,43 @@
+// ################################################################
+// Notes: 
+// 1) please wait until your gateway has finished ftw successfully 
+// 2) modify following lines before you use below api script!
+// 		your Gateway Name            (sdwangw10) 
+// 		your Gateway MaaS IP Addr    (10.50.10.10) 
+// 		your sic_key                 (VPN1234567890)
+// 		vnet_backend ip-address      (10.50.100.0 )
+//		Admin_PC1 ip-address	
+//		Admin_PC2 ip-address
+//
+// ################################################################
+
+add host name "sdwangw10" ip-address "10.50.10.10"
+add network name "vnet_backend" subnet "10.50.100.0" subnet-mask "255.255.255.0"
+add host name "Admin_via_SASE" ip-address "15.160.149.181"
+add host name "Admin_PC1" ip-address "2.39.15.59"    
+add host name "Admin_PC2" ip-address "2.39.15.104"    
+add service-tcp name GaiaWebUI port 4434
+
+set simple-gateway name "sdwangw10" version R80.40 one-time-password VPN1234567890 
+set access-layer name "Network" applications-and-url-filtering true
+add access-rule    layer "Network"    position 1   name "Management"   source.1 "Admin_PC1" source.2 "vnet_backend" source.3 "Admin_PC2" source.4 "Admin_via_SASE" destination "sdwangw10" service.1 "ssh" service.2 "GaiaWebUI" action "Accept" track "Log"
+add access-section layer "Network"    position 2   name "Services"
+add access-rule    layer "Network"    position 2   name "ICMP"         source "vnet_backend" destination Any                   service "ICMP Protocol"   action "Accept" track "Log"
+add access-rule    layer "Network"    position 3   name "DNS"          source "vnet_backend" destination Any                   service "dns"             action "Accept" track "Log"
+add access-rule    layer "Network"    position 4   name "OCSP"         source "vnet_backend" destination Any                   service "OCSP"            action "Accept" track "None"
+add access-rule    layer "Network"    position 5   name "NTP"          source "vnet_backend" destination Any                   service "ntp"             action "Accept" track "None"
+add access-section layer "Network"    position 6   name "Inbound"
+add access-rule    layer "Network"    position 6   name "Inbound"      source "Admin_PC1"    destination "sdwangw10"           service.1 "http" service.2 "https"      action "Accept" track "Log"
+
+add access-section layer "Network"    position 7   name "Internet Access"
+add access-layer name "AppControl" applications-and-url-filtering true firewall true 
+add access-rule    layer "Network"    position 7   name "Outbound"     source "vnet_backend" destination "Any"                 service "Any"             action "Apply Layer" inline-layer "AppControl"
+add access-rule    layer "AppControl" position 1   name "Teams"        source "Any"          destination "Internet"            service "Microsoft Teams" action "Accept" track "Detailed Log"
+add access-rule    layer "AppControl" position 2   name "Zoom"         source "Any"          destination "Internet"            service "Zoom"            action "Accept" track "Detailed Log"
+add access-rule    layer "AppControl" position 3   name "Salesforce"   source "Any"          destination "Internet"            service "Salesforce"      action "Accept" track "Detailed Log"
+add access-rule    layer "AppControl" position 4   name "File Sharing" source "Any"          destination "Internet"            service "SharePoint"      action "Accept" track "Detailed Log" 
+add access-rule    layer "AppControl" position 5   name "Youtube"      source "Any"          destination "Internet"            service "YouTube"         action "Accept" track "Log" action-settings.limit "Download_10Mbps" 
+add access-rule    layer "AppControl" position 6   name "Monitor all"  source "Any"          destination "Internet"            service "Any"             action "Accept" track "Detailed Log"
+
+add access-section layer "Network"          position 8   name "Outbound"
+add access-rule    layer "Network"          position 8  name "Clean NBT"    source "Any"          destination "Any"                 service "NBT"             action "Drop"   track "None"
