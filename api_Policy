@@ -3,16 +3,16 @@
 // 1) please wait until your gateway has finished ftw successfully 
 // 2) modify following lines before you use below api script!
 // 		your Gateway Name            (sdwangw10) 
-// 		your Gateway MaaS IP Addr    (10.50.10.10) 
+// 		your Gateway MaaS IP Addr    (100.x.y.z) 
 // 		your sic_key                 (VPN1234567890)
-// 		vnet_backend ip-address      (10.50.100.0 )
-//		Admin_PC1 ip-address	
+// 		vnet_backend ip-address      (10.60.100.0 )
+//		Admin_PC1 ip-address	     
 //		Admin_PC2 ip-address
 //
 // ################################################################
 
-add host name "sdwangw10" ip-address "10.50.10.10"
-add network name "vnet_backend" subnet "10.50.100.0" subnet-mask "255.255.255.0"
+add host name "sdwangw10" ip-address "100.x.y.z"
+add network name "vnet_backend" subnet "10.60.100.0" subnet-mask "255.255.255.0"
 add host name "Admin_via_SASE" ip-address "15.160.149.181"
 add host name "Admin_PC1" ip-address "2.39.15.59"    
 add host name "Admin_PC2" ip-address "2.39.15.104"    
