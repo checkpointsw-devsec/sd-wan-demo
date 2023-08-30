@@ -3,22 +3,22 @@
 // 1) please wait until your gateway has finished ftw successfully 
 // 2) modify following lines before you use below api script!
 // 		your Gateway Name            (sdwangw10) 
-// 		your Gateway MaaS IP Addr    (10.50.10.10) 
+// 		your Gateway MaaS IP Addr    (100.X.Y.Z) 
 // 		your sic_key                 (VPN1234567890)
-// 		vnet_backend ip-address      (10.50.100.0 )
+// 		vnet_backend ip-address      (10.60.100.0 )
 //		Admin_PC1 ip-address	
 //		Admin_PC2 ip-address
 //
 // ################################################################
+// add host name "sdwangw10" ip-address "100.X.Y.Z"
 
-add host name "sdwangw10" ip-address "10.50.10.10"
-add network name "vnet_backend" subnet "10.50.100.0" subnet-mask "255.255.255.0"
 add host name "Admin_via_SASE" ip-address "15.160.149.181"
 add host name "Admin_PC1" ip-address "2.39.15.59"    
 add host name "Admin_PC2" ip-address "2.39.15.104"    
+add network name "vnet_backend" subnet "10.60.100.0" subnet-mask "255.255.255.0"
 add service-tcp name GaiaWebUI port 4434
 
-set simple-gateway name "sdwangw10" version R80.40 one-time-password VPN1234567890 
+set simple-gateway name "sdwangw10" version R81.20 one-time-password VPN1234567890
 set access-layer name "Network" applications-and-url-filtering true
 add access-rule    layer "Network"    position 1   name "Management"   source.1 "Admin_PC1" source.2 "vnet_backend" source.3 "Admin_PC2" source.4 "Admin_via_SASE" destination "sdwangw10" service.1 "ssh" service.2 "GaiaWebUI" action "Accept" track "Log"
 add access-section layer "Network"    position 2   name "Services"
