@@ -489,7 +489,7 @@ resource "null_resource" "default" {
   }
   provisioner  "remote-exec" {
     inline = [
-      "while [ ! -f /home/admin/sic_flag_file.log ]; do sleep 10; done;",
+      "while [ ! -f /home/admin/sic_flag_file.log ]; do sleep 10; done; sleep 130",
     ]
   }
 }
