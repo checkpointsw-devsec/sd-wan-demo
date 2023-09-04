@@ -11,7 +11,8 @@
 //
 // ################################################################
 
-add host name "sdwangw10" ip-address "100.x.y.z"
+// add host name "sdwangw10" ip-address "100.x.y.z"
+
 add network name "vnet_backend" subnet "10.60.100.0" subnet-mask "255.255.255.0"
 add host name "Admin_via_SASE" ip-address "15.160.149.181"
 add host name "Admin_PC1" ip-address "2.39.15.59"    
