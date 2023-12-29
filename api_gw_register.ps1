@@ -9,8 +9,8 @@ param (
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
 #[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-#$clientid = 'b19cb4560878480fb1091ab332a7eb74'
-#$password = '000196b1c7944ee4a96773d85691c122'
+#$clientid = 'b19cb456xxxxxxxxxxx91ab332a7eb74'
+#$password = '000196b1xxxxxxxxxxx773d85691c122'
 # ##########################################################
 # main URL
 # ##########################################################
